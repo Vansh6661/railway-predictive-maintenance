@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Railways — Predictive Maintenance AI System (Phase 1)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dark-theme">
+
+    <!-- Top Navigation / Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo-badge">
+                <i class="fa-solid fa-train-subway"></i>
+            </div>
+            <div class="header-title">
+                <h1>IR-PMIS <span>Predictive Maintenance</span></h1>
+                <p>AI/ML Subject Project &bull; Track & Rolling Stock Diagnostic System</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="live-status-pill">
+                <span class="status-dot pulse"></span>
+                <span>ML Pipeline: <strong>Active (80k/20k)</strong></span>
+            </div>
+            <div class="model-badge">
+                <i class="fa-solid fa-microchip"></i> Random Forest + Logistic Reg
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-navigation">
+        <button class="nav-tab active" data-tab="tab-predictor" id="btn-tab-predictor">
+            <i class="fa-solid fa-gauge-high"></i> Live Asset Diagnostic & Inference
+        </button>
+        <button class="nav-tab" data-tab="tab-models" id="btn-tab-models">
+            <i class="fa-solid fa-chart-line"></i> Model Performance & Comparison
+        </button>
+        <button class="nav-tab" data-tab="tab-eda" id="btn-tab-eda">
+            <i class="fa-solid fa-magnifying-glass-chart"></i> Exploratory Data Analysis (EDA)
+        </button>
+        <button class="nav-tab" data-tab="tab-blockplan" id="btn-tab-blockplan">
+            <i class="fa-solid fa-calendar-days"></i> Corridor Block Planning (Phase 2-4)
+        </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+
+        <!-- TAB 1: LIVE PREDICTOR -->
+        <section id="tab-predictor" class="tab-panel active">
+            
+            <!-- Quick Preset Toolbar -->
+            <div class="preset-toolbar glass-card">
+                <div class="preset-label">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <strong>Load Quick Scenario:</strong>
+                </div>
+                <div class="preset-buttons">
+                    <button type="button" class="btn-preset active" id="btn-preset-pristine" onclick="loadPreset('pristine_express')">
+                        <i class="fa-solid fa-circle-check text-success"></i> Vande Bharat Express (Healthy)
+                    </button>
+                    <button type="button" class="btn-preset" id="btn-preset-monsoon" onclick="loadPreset('monsoon_passenger')">
+                        <i class="fa-solid fa-cloud-showers-heavy text-warning"></i> Monsoon Passenger (Vibration Warning)
+                    </button>
+                    <button type="button" class="btn-preset" id="btn-preset-critical" onclick="loadPreset('critical_freight')">
+                        <i class="fa-solid fa-triangle-exclamation text-danger"></i> Heavy Freight Rake (Critical Wear)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Predictor Split Layout -->
+            <div class="predictor-grid">
+                
+                <!-- Left: Sensor Controls & Form -->
+                <div class="input-column">
+                    <form id="telemetry-form">
+                        
+                        <!-- Card 1: Track & Infrastructure -->
+                        <div class="control-card glass-card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-road text-cyan"></i>
+                                <h3>1. Track & Infrastructure Sensors</h3>
+                            </div>
+                            <div class="controls-grid">
+                                <div class="form-group">
+                                    <label for="rail_wear_mm">Rail Wear (mm): <span id="val-rail_wear_mm" class="val-badge">2.5</span></label>
+                                    <input type="range" id="rail_wear_mm" name="rail_wear_mm" min="0" max="22" step="0.1" value="2.5" oninput="updateVal('rail_wear_mm')">
+                                    <div class="range-labels"><span>0 mm (New)</span><span>22 mm (Severe)</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="track_vibration_level">Track Vibration (G): <span id="val-track_vibration_level" class="val-badge">1.6</span></label>
+                                    <input type="range" id="track_vibration_level" name="track_vibration_level" min="0" max="11" step="0.1" value="1.6" oninput="updateVal('track_vibration_level')">
+                                    <div class="range-labels"><span>0 G (Smooth)</span><span>11 G (Extreme)</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="track_temperature_c">Track Temp (°C): <span id="val-track_temperature_c" class="val-badge">22</span></label>
+                                    <input type="range" id="track_temperature_c" name="track_temperature_c" min="-5" max="70" step="1" value="22" oninput="updateVal('track_temperature_c')">
+                                    <div class="range-labels"><span>-5°C</span><span>70°C (Risk of Buckling)</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ballast_condition">Ballast Condition</label>
+                                    <select id="ballast_condition" name="ballast_condition" onchange="runPrediction()">
+                                        <option value="Good" selected>Good (Stable Bed)</option>
+                                        <option value="Fair">Fair (Minor Settlement)</option>
+                                        <option value="Poor">Poor (Eroded / Mud Pumping)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Rolling Stock Mechanical & Thermal -->
+                        <div class="control-card glass-card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-gears text-purple"></i>
+                                <h3>2. Rolling Stock Mechanical & Pneumatics</h3>
+                            </div>
+                            <div class="controls-grid">
+                                <div class="form-group">
+                                    <label for="wheel_wear_percent">Wheel Tread Wear (%): <span id="val-wheel_wear_percent" class="val-badge">15</span></label>
+                                    <input type="range" id="wheel_wear_percent" name="wheel_wear_percent" min="0" max="100" step="1" value="15" oninput="updateVal('wheel_wear_percent')">
+                                    <div class="range-labels"><span>0%</span><span>100%</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="brake_pad_wear_percent">Brake Pad Wear (%): <span id="val-brake_pad_wear_percent" class="val-badge">14</span></label>
+                                    <input type="range" id="brake_pad_wear_percent" name="brake_pad_wear_percent" min="0" max="100" step="1" value="14" oninput="updateVal('brake_pad_wear_percent')">
+                                    <div class="range-labels"><span>0%</span><span>100%</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="brake_pressure_psi">Brake Air Pressure (PSI): <span id="val-brake_pressure_psi" class="val-badge">102</span></label>
+                                    <input type="range" id="brake_pressure_psi" name="brake_pressure_psi" min="30" max="140" step="1" value="102" oninput="updateVal('brake_pressure_psi')">
+                                    <div class="range-labels"><span>30 PSI (Leak)</span><span>140 PSI (Optimal)</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bearing_temperature_c">Bearing Temp (°C): <span id="val-bearing_temperature_c" class="val-badge">48</span></label>
+                                    <input type="range" id="bearing_temperature_c" name="bearing_temperature_c" min="20" max="140" step="1" value="48" oninput="updateVal('bearing_temperature_c')">
+                                    <div class="range-labels"><span>20°C (Normal)</span><span>140°C (Hot Axle)</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="axle_temperature_c">Axle Temp (°C): <span id="val-axle_temperature_c" class="val-badge">42</span></label>
+                                    <input type="range" id="axle_temperature_c" name="axle_temperature_c" min="20" max="120" step="1" value="42" oninput="updateVal('axle_temperature_c')">
+                                    <div class="range-labels"><span>20°C</span><span>120°C</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="traction_motor_temp_c">Traction Motor Temp (°C): <span id="val-traction_motor_temp_c" class="val-badge">58</span></label>
+                                    <input type="range" id="traction_motor_temp_c" name="traction_motor_temp_c" min="20" max="150" step="1" value="58" oninput="updateVal('traction_motor_temp_c')">
+                                    <div class="range-labels"><span>20°C</span><span>150°C</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Operational & Electrical Profile -->
+                        <div class="control-card glass-card">
+                            <div class="card-header">
+                                <i class="fa-solid fa-bolt text-yellow"></i>
+                                <h3>3. Operational, Electrical & Weather Factors</h3>
+                            </div>
+                            <div class="controls-grid">
+                                <div class="form-group">
+                                    <label for="region">Railway Zone</label>
+                                    <select id="region" name="region" onchange="runPrediction()">
+                                        <option value="Northern Railway">Northern Railway</option>
+                                        <option value="Western Railway">Western Railway</option>
+                                        <option value="Central Railway">Central Railway</option>
+                                        <option value="Southern Railway">Southern Railway</option>
+                                        <option value="Eastern Railway">Eastern Railway</option>
+                                        <option value="South Central Railway">South Central Railway</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="train_type">Train Type</label>
+                                    <select id="train_type" name="train_type" onchange="runPrediction()">
+                                        <option value="Express" selected>Express / Vande Bharat</option>
+                                        <option value="Passenger">Passenger</option>
+                                        <option value="Freight">Heavy Freight</option>
+                                        <option value="Metro">Metro EMU</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="season">Season</label>
+                                    <select id="season" name="season" onchange="runPrediction()">
+                                        <option value="Winter" selected>Winter</option>
+                                        <option value="Summer">Summer</option>
+                                        <option value="Monsoon">Monsoon</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="signal_system_status">Signaling System</label>
+                                    <select id="signal_system_status" name="signal_system_status" onchange="runPrediction()">
+                                        <option value="Normal" selected>Normal</option>
+                                        <option value="Warning">Warning</option>
+                                        <option value="Fault">Fault</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="battery_voltage">Battery Voltage (V): <span id="val-battery_voltage" class="val-badge">26.5</span></label>
+                                    <input type="range" id="battery_voltage" name="battery_voltage" min="12" max="32" step="0.1" value="26.5" oninput="updateVal('battery_voltage')">
+                                    <div class="range-labels"><span>12V (Low)</span><span>32V</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="last_maintenance_days">Days Since Overhaul: <span id="val-last_maintenance_days" class="val-badge">15</span></label>
+                                    <input type="range" id="last_maintenance_days" name="last_maintenance_days" min="1" max="365" step="1" value="15" oninput="updateVal('last_maintenance_days')">
+                                    <div class="range-labels"><span>1 Day</span><span>365 Days</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inspection_score">Manual Inspection Score: <span id="val-inspection_score" class="val-badge">98</span></label>
+                                    <input type="range" id="inspection_score" name="inspection_score" min="40" max="100" step="1" value="98" oninput="updateVal('inspection_score')">
+                                    <div class="range-labels"><span>40 (Poor)</span><span>100 (Flawless)</span></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="delay_minutes">Recorded Delay (Mins): <span id="val-delay_minutes" class="val-badge">2</span></label>
+                                    <input type="range" id="delay_minutes" name="delay_minutes" min="0" max="120" step="1" value="2" oninput="updateVal('delay_minutes')">
+                                    <div class="range-labels"><span>0 min</span><span>120 min</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+
+                <!-- Right: Real-time Live ML Output Panel -->
+                <div class="output-column">
+                    <div class="prediction-card glass-card sticky-card">
+                        
+                        <!-- Prediction Banner -->
+                        <div id="prediction-banner" class="result-banner banner-healthy">
+                            <div class="banner-icon">
+                                <i id="result-icon" class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div class="banner-content">
+                                <span class="sub-label">Random Forest AI Verdict</span>
+                                <h2 id="result-title">HEALTHY (NO MAINTENANCE REQUIRED)</h2>
+                            </div>
+                        </div>
+
+                        <!-- Risk Meter & Probabilities -->
+                        <div class="risk-meter-container">
+                            <div class="meter-header">
+                                <span>Maintenance Risk Probability:</span>
+                                <strong id="risk-percentage" class="text-cyan">45.4%</strong>
+                            </div>
+                            <div class="progress-bar-track">
+                                <div id="risk-progress-bar" class="progress-bar-fill" style="width: 45.4%;"></div>
+                            </div>
+                            <div class="progress-legend">
+                                <span>0% (Safe)</span>
+                                <span>Threshold (50%)</span>
+                                <span>100% (Critical)</span>
+                            </div>
+                        </div>
+
+                        <!-- Urgency & Maintenance Window Badge -->
+                        <div class="urgency-strip">
+                            <div class="urgency-box">
+                                <span class="label">Urgency Priority</span>
+                                <div id="urgency-badge" class="badge-pill bg-low">LOW</div>
+                            </div>
+                            <div class="window-box">
+                                <span class="label">Recommended Maintenance Slot</span>
+                                <div id="window-recommendation" class="window-text">Standard Inspection Cycle</div>
+                            </div>
+                        </div>
+
+                        <!-- Subsystem Health Diagnostic Radar -->
+                        <div class="subsystems-panel">
+                            <h4><i class="fa-solid fa-cubes-stacked"></i> Subsystem Health Indices:</h4>
+                            <div class="subsystem-grid">
+                                <div class="sub-metric">
+                                    <div class="sub-label-row">
+                                        <span><i class="fa-solid fa-road"></i> Track & Infrastructure</span>
+                                        <strong id="track-health-val">90%</strong>
+                                    </div>
+                                    <div class="sub-bar"><div id="track-health-bar" class="sub-fill bg-success" style="width: 90%;"></div></div>
+                                </div>
+                                <div class="sub-metric">
+                                    <div class="sub-label-row">
+                                        <span><i class="fa-solid fa-gear"></i> Mechanical & Wheelset</span>
+                                        <strong id="mech-health-val">92%</strong>
+                                    </div>
+                                    <div class="sub-bar"><div id="mech-health-bar" class="sub-fill bg-success" style="width: 92%;"></div></div>
+                                </div>
+                                <div class="sub-metric">
+                                    <div class="sub-label-row">
+                                        <span><i class="fa-solid fa-ring"></i> Pneumatic Brakes</span>
+                                        <strong id="brake-health-val">95%</strong>
+                                    </div>
+                                    <div class="sub-bar"><div id="brake-health-bar" class="sub-fill bg-success" style="width: 95%;"></div></div>
+                                </div>
+                                <div class="sub-metric">
+                                    <div class="sub-label-row">
+                                        <span><i class="fa-solid fa-bolt"></i> Electrical & Signals</span>
+                                        <strong id="elec-health-val">98%</strong>
+                                    </div>
+                                    <div class="sub-bar"><div id="elec-health-bar" class="sub-fill bg-success" style="width: 98%;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Key Explainability Factors -->
+                        <div class="factors-panel">
+                            <h4><i class="fa-solid fa-circle-info"></i> Diagnostic Explainability:</h4>
+                            <ul id="factors-list" class="factors-list">
+                                <li>All physical parameters within nominal railway safety thresholds.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Model Comparison Mini Pill -->
+                        <div class="model-sanity-check">
+                            <span>Logistic Reg Probability: <strong id="lr-prob-val">23.0%</strong></span>
+                            <span>Random Forest (Primary): <strong id="rf-prob-val">45.4%</strong></span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 2: MODEL PERFORMANCE & BENCHMARK -->
+        <section id="tab-models" class="tab-panel">
+            <div class="model-overview-grid">
+                
+                <!-- Performance Table Card -->
+                <div class="glass-card full-width">
+                    <div class="card-header">
+                        <i class="fa-solid fa-trophy text-yellow"></i>
+                        <h3>Phase 1 Model Benchmark: Logistic Regression vs Random Forest</h3>
+                    </div>
+                    <p class="subtitle">Evaluated on <strong>20,000 unseen test railway assets</strong> using stratified sampling.</p>
+                    
+                    <div class="table-container">
+                        <table class="benchmark-table">
+                            <thead>
+                                <tr>
+                                    <th>Model Algorithm</th>
+                                    <th>Accuracy</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1-Score</th>
+                                    <th>ROC-AUC</th>
+                                    <th>Verdict & Role</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong><i class="fa-solid fa-calculator"></i> Logistic Regression</strong></td>
+                                    <td>60.58%</td>
+                                    <td>22.95%</td>
+                                    <td><strong class="text-cyan">40.41%</strong></td>
+                                    <td>29.28%</td>
+                                    <td>53.86%</td>
+                                    <td><span class="badge-pill bg-neutral">Baseline Benchmark</span></td>
+                                </tr>
+                                <tr class="highlight-row">
+                                    <td><strong><i class="fa-solid fa-tree"></i> Random Forest Classifier</strong></td>
+                                    <td><strong class="text-success">79.97%</strong></td>
+                                    <td><strong class="text-success">51.46%</strong></td>
+                                    <td>13.96%</td>
+                                    <td>21.97%</td>
+                                    <td><strong class="text-success">55.02%</strong></td>
+                                    <td><span class="badge-pill bg-success">Primary Production Model</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Plot: Confusion Matrices -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-table-cells text-cyan"></i>
+                        <h3>Confusion Matrices Comparison</h3>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="/plots/confusion_matrices.png" alt="Confusion Matrices">
+                    </div>
+                </div>
+
+                <!-- Plot: ROC Curves -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-chart-area text-purple"></i>
+                        <h3>ROC Curve Comparison (AUC Analysis)</h3>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="/plots/roc_curves_comparison.png" alt="ROC Curves">
+                    </div>
+                </div>
+
+                <!-- Plot: Top Feature Importances -->
+                <div class="glass-card full-width">
+                    <div class="card-header">
+                        <i class="fa-solid fa-ranking-star text-green"></i>
+                        <h3>Random Forest Feature Importance Analysis</h3>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="/plots/top_feature_importances.png" alt="Feature Importances">
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 3: EXPLORATORY DATA ANALYSIS (EDA) -->
+        <section id="tab-eda" class="tab-panel">
+            <div class="eda-grid">
+                
+                <div class="glass-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-chart-pie text-cyan"></i>
+                        <h3>1. Target Distribution & Severity Breakdown</h3>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="/plots/01_target_distribution.png" alt="Target Distribution">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-sliders text-purple"></i>
+                        <h3>2. Physical Sensor Boxplots (Wear & Heat)</h3>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="/plots/02_sensor_distributions_by_target.png" alt="Sensor Distributions">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-map-location-dot text-yellow"></i>
+                        <h3>3. Zone & Train Type Maintenance Rates</h3>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="/plots/03_categorical_maintenance_rates.png" alt="Categorical Maintenance Rates">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-fire text-danger"></i>
+                        <h3>4. Multivariable Correlation Heatmap</h3>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="/plots/04_correlation_heatmap.png" alt="Correlation Heatmap">
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 4: PHASE 2-4 BLOCK PLANNING PREVIEW -->
+        <section id="tab-blockplan" class="tab-panel">
+            <div class="glass-card full-width">
+                <div class="card-header">
+                    <i class="fa-solid fa-route text-cyan"></i>
+                    <h3>Indian Railways Automatic Block Planning Preview (SIH Roadmap)</h3>
+                </div>
+                <div class="roadmap-container">
+                    <div class="roadmap-step completed">
+                        <div class="step-num"><i class="fa-solid fa-check"></i></div>
+                        <h4>Phase 1: ML Maintenance Prediction</h4>
+                        <p>Predict failure likelihood from telemetry sensors with Random Forest & Logistic Regression.</p>
+                        <span class="badge-status done">Completed</span>
+                    </div>
+                    <div class="roadmap-step active">
+                        <div class="step-num">2</div>
+                        <h4>Phase 2: Urgency Priority Index</h4>
+                        <p>Classify maintenance urgency into Critical, High, Medium, and Low tiers.</p>
+                        <span class="badge-status active">Implemented in UI</span>
+                    </div>
+                    <div class="roadmap-step">
+                        <div class="step-num">3</div>
+                        <h4>Phase 3: Train Timetable Integration</h4>
+                        <p>Analyze line section traffic density to identify open non-peak corridor blocks.</p>
+                        <span class="badge-status pending">Roadmap</span>
+                    </div>
+                    <div class="roadmap-step">
+                        <div class="step-num">4</div>
+                        <h4>Phase 4: Automatic Maintenance Window</h4>
+                        <p>Combine ML prediction + repair duration + timetable to auto-schedule track blocks without disrupting passenger trains.</p>
+                        <span class="badge-status pending">Roadmap</span>
+                    </div>
+                </div>
+
+                <!-- Interactive Timetable Block Demo -->
+                <div class="timetable-demo-box">
+                    <h4><i class="fa-solid fa-clock"></i> Sample Corridor Traffic & Recommended Window Simulator:</h4>
+                    <div class="timeline-visual">
+                        <div class="time-block busy" title="10:00 - 12:00: Heavy Express Traffic"><i class="fa-solid fa-train"></i> 10:00 - 12:00 (Traffic)</div>
+                        <div class="time-block busy" title="12:00 - 16:00: Freight & Intercity"><i class="fa-solid fa-train"></i> 12:00 - 16:00 (Traffic)</div>
+                        <div class="time-block busy" title="16:00 - 22:00: Peak Commuter Traffic"><i class="fa-solid fa-train"></i> 16:00 - 22:00 (Peak)</div>
+                        <div class="time-block busy" title="22:00 - 01:00: Mail Expresses"><i class="fa-solid fa-train"></i> 22:00 - 01:00 (Mail)</div>
+                        <div class="time-block recommended" title="01:00 - 04:00: Recommended Low Traffic Block Window">
+                            <i class="fa-solid fa-screwdriver-wrench"></i> <strong>01:00 - 04:00 AM (Recommended Block Window)</strong>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>Indian Railway Predictive Maintenance AI System &bull; AIML Subject College Project &bull; Built with Python, Scikit-Learn & Flask</p>
+    </footer>
+
+    <!-- App JavaScript -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
